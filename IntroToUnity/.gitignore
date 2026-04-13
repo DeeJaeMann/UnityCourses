@@ -147,3 +147,8 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# JetBrains Rider / IntelliJ
+.idea/
+*.sln.iml
+
