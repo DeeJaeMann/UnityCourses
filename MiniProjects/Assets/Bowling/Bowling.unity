@@ -557,7 +557,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 565433404}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 959361878}
+        m_TargetAssemblyTypeName: BowlingBall, Assembly-CSharp
+        m_MethodName: MoveLeft
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &565433404
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -792,7 +804,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 959361874}
   serializedVersion: 5
-  m_Mass: 1
+  m_Mass: 10
   m_LinearDamping: 0
   m_AngularDamping: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
@@ -839,9 +851,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 08f52880343cada698aa1ac2adf44fb3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BowlingBall
-  bowlForce: 10
-  leftBarrier: -2
-  rightBarrier: 2
+  bowlForce: 200
+  leftBarrier: -1.9
+  rightBarrier: 1.9
   moveIncrement: 0.2
   rig: {fileID: 959361876}
 --- !u!1 &1016572638
@@ -1038,7 +1050,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1052828390}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 959361878}
+        m_TargetAssemblyTypeName: BowlingBall, Assembly-CSharp
+        m_MethodName: Bowl
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1052828390
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1159,7 +1183,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1065806819}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 959361878}
+        m_TargetAssemblyTypeName: BowlingBall, Assembly-CSharp
+        m_MethodName: MoveRight
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1065806819
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2256,6 +2292,6 @@ SceneRoots:
   - {fileID: 1639420832}
   - {fileID: 198348207}
   - {fileID: 906209476}
-  - {fileID: 959361877}
-  - {fileID: 444572633}
   - {fileID: 1157839553}
+  - {fileID: 444572633}
+  - {fileID: 959361877}
