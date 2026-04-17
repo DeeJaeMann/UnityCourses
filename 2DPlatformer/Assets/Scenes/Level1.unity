@@ -1269,6 +1269,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: EndFlag
       objectReference: {fileID: 0}
+    - target: {fileID: 6004372380272763497, guid: bea5e96ad10c6272ca57581959fd194a, type: 3}
+      propertyPath: nextSceneName
+      value: Level2
+      objectReference: {fileID: 0}
     - target: {fileID: 6671349646662845504, guid: bea5e96ad10c6272ca57581959fd194a, type: 3}
       propertyPath: m_LocalPosition.x
       value: 45.15

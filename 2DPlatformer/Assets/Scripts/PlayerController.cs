@@ -11,6 +11,9 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private SpriteRenderer spriteRenderer;
     [SerializeField] private Animator animator;
     [SerializeField] private TMP_Text scoreText;
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip jumpSound;
+    [SerializeField] private AudioClip scoreSound;
     private float moveInput;
     private bool jumpInput;
     private bool isGrounded;
@@ -38,6 +41,7 @@ public class PlayerController : MonoBehaviour
         {
             jumpInput = false;
             rig.linearVelocityY = jumpForce;
+            audioSource.PlayOneShot(jumpSound);
         }
 
         if(moveInput is not 0) spriteRenderer.flipX = moveInput < 0;
@@ -82,6 +86,7 @@ public class PlayerController : MonoBehaviour
     {
         score += amount;
         // Debug.Log($"Score: {score}");
-        scoreText.text = $"Score: {score.ToString()}";
+        // scoreText.text = $"Score: {score.ToString()}";
+        audioSource.PlayOneShot(scoreSound);
     }
 }

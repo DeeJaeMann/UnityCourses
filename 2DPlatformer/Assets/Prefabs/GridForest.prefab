@@ -138,7 +138,7 @@ GameObject:
   - component: {fileID: 2812840368194973916}
   - component: {fileID: 2106601642700298037}
   m_Layer: 0
-  m_Name: Grid
+  m_Name: GridForest
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
