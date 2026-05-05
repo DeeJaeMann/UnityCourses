@@ -81,21 +81,25 @@ public class BoardManager : MonoBehaviour
 
     /// <summary>
     /// Attempts to place an item prefab at the specified cell.
-    /// Instantiates the object, positions it at the cell center, and registers it in the board state.
-    /// TODO: Refactor for mobile first design.
+    /// Retrieves an instance from the object pool, positions it at the cell center,
+    /// resets its state, and registers it in the board state.
     /// </summary>
-    /// <param name="prefab">The item prefab to instantiate.</param>
+    /// <param name="prefab">The item prefab to retrieve from the pool.</param>
     /// <param name="cell">The tile cell position where the item should be placed.</param>
     /// <returns>True if placement succeeded; otherwise false.</returns>
     public bool TryPlaceItem(GameObject prefab, Vector3Int cell)
     {
-        if (!CanPlace(cell)) return false;
+        if (!CanPlace(cell)) 
+            return false;
 
         Vector3 worldPos = boardTilemap.GetCellCenterWorld(cell);
-        // TODO: Refactor for mobile first design
-        GameObject obj = Instantiate(prefab, worldPos, Quaternion.identity);
+        // Refactored for mobile first design
+        // GameObject obj = Instantiate(prefab, worldPos, Quaternion.identity);
+        GameObject obj = ObjectPoolManager.Instance.GetPrefab(prefab);
+        obj.transform.position = worldPos;
 
         BoardItem item = obj.GetComponent<BoardItem>();
+        item.ResetItem();
         item.CellPosition = cell;
 
         items[cell] = item;
@@ -105,16 +109,17 @@ public class BoardManager : MonoBehaviour
 
     /// <summary>
     /// Removes the item at the specified cell, if one exists.
-    /// Destorys the GameObject and clears the occupancy record.
-    /// TODO: Refactor for mobile first design
+    /// Returns the object to the pool and clears the occupancy record.
     /// </summary>
     /// <param name="cell">The tile cell position to clear.</param>
     public void RemoveItem(Vector3Int cell)
     {
         if (!items.ContainsKey(cell)) return;
         
-        // TODO: Refactor for mobile first design
-        Destroy(items[cell].gameObject);
+        // Refactored for mobile first design
+        // Destroy(items[cell].gameObject);
+        BoardItem item = items[cell];
+        ObjectPoolManager.Instance.ReturnPrefab(item.PrefabReference, item.gameObject);
         items.Remove(cell);
     }
 

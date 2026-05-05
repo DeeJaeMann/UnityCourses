@@ -12,4 +12,21 @@ public class BoardItem : MonoBehaviour
     /// </summary>
     public Vector3Int CellPosition { get; set; }
 
+    /// <summary>
+    /// The prefab type this item belongs to.
+    /// Required so the ObjectPoolManager knows which pool to return it to.
+    /// </summary>
+    [SerializeField] private GameObject prefabReference;
+    
+    /// <summary>
+    /// The prefab type this item belongs to.
+    /// Required so the ObjectPoolManager knows which pool to return it to.
+    /// </summary>
+    public GameObject PrefabReference => prefabReference;
+
+    public virtual void ResetItem()
+    {
+        CellPosition = Vector3Int.zero;
+        // TODO:Add more reset logic later (animation, timers, merge state, etc. )
+    }
 }
