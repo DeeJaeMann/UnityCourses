@@ -18,6 +18,11 @@ public class ObjectPoolManager : MonoBehaviour
     /// </summary>
     private Dictionary<GameObject, Queue<GameObject>> pools;
 
+    /// <summary>
+    /// Initializes the pooling system and enforces the singleton instance.
+    /// Sets up the internal dictionary used to store object pools and ensures
+    /// only one ObjectPoolManager exists in the scene.
+    /// </summary>
     private void Awake()
     {
         // Enforce singleton pattern

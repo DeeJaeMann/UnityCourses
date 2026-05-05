@@ -8,10 +8,22 @@ using System.Collections.Generic;
 /// </summary>
 public class BoardManager : MonoBehaviour
 {
+    /// <summary>
+    /// The base tilemap that defines the playable board area.
+    /// Used to validate cell positions and convert between world and grid coordinates.
+    /// </summary>
     [Header("References")] public Tilemap boardTilemap;
 
+    /// <summary>
+    /// The overlay tilemap used for locked or highlighted cells.
+    /// A cell is considered locked if this tilemap contains a tile at that position.
+    /// </summary>
     public Tilemap overlayTilemap;
 
+    /// <summary>
+    /// Tracks all active items placed on the board, keyed by their tile cell position.
+    /// Provides fast lookups for occupancy, merging, and movement.
+    /// </summary>
     private Dictionary<Vector3Int, BoardItem> items;
 
     /// <summary>
