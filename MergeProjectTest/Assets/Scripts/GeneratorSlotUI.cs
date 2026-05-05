@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 /// <summary>
@@ -7,7 +8,7 @@ using UnityEngine.UI;
 /// displaying the generatory icon, hiding it when no generator is available,
 /// and exposing UI events (click, drag)for higher-level systems to use.
 /// </summary>
-public class GeneratorSlotUI : MonoBehaviour
+public class GeneratorSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
     /// <summary>
     /// Reference to the Image component used to display the generator icon.
@@ -62,16 +63,28 @@ public class GeneratorSlotUI : MonoBehaviour
     {
         // Placeholder for future click-to-place logic.
         // Will call InputManager.BeginClickPlacement(prefab) later.
+        Debug.Log("GeneratorSlotUI.OnSlotClicked");
     }
 
+    /// <summary>
+    /// Called when a drag operation begins on this UI element.
+    /// Notifies the InputManager to begin drag placement.
+    /// </summary>
+    /// <param name="eventData"></param>
+    public void OnBeginDrag(PointerEventData eventData)
+    {
+        Debug.Log("GeneratorSlotUI.OnBeginDrag");
+    }
+    
     /// <summary>
     /// Called continuously while dragging the slot icon.
     /// This will later update the drag preview position.
     /// Currently implemented as a placeholder for future logic.
     /// </summary>
-    public void OnDrag()
+    public void OnDrag(PointerEventData eventData)
     {
         // Placeholder for future drag logic.
+        Debug.Log("GeneratorSlotUI.OnDrag");
     }
 
     /// <summary>
@@ -79,8 +92,9 @@ public class GeneratorSlotUI : MonoBehaviour
     /// This will later attempt placement or cancel the drag.
     /// Currently implemented as a placeholder for future logic.
     /// </summary>
-    public void OnEndDrag()
+    public void OnEndDrag(PointerEventData eventData)
     {
         // Placeholder for future drag logic.
+        Debug.Log("GeneratorSlotUI.OnEndDrag");
     }
 }
