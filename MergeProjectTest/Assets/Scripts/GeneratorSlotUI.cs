@@ -28,6 +28,12 @@ public class GeneratorSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         {
             iconImage.sprite = null;
         }
+
+    }
+
+    public void Start()
+    {
+        // Debug.Log($"GeneratorSlotUI Namespace: {GetType().Namespace}");
     }
 
     /// <summary>
