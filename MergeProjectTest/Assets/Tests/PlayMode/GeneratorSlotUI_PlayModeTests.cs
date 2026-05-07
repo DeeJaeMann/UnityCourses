@@ -52,7 +52,7 @@ public class GeneratorSlotUI_PlayModeTests
         
         // Assign via serialized field
         typeof(GeneratorSlotUI)
-            .GetField("iconImage", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+            .GetField("iconImage", BindingFlags.NonPublic | BindingFlags.Instance)
             ?.SetValue(_slotUI, _iconImage);
         
         // Force Unity to run Awake() in PlayMode

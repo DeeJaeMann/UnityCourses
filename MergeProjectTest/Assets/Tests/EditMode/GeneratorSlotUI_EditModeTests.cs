@@ -35,7 +35,7 @@ public class GeneratorSlotUIEditModeTests
         
         // Use reflection to assign the private serialized field "iconImage"
         typeof(GeneratorSlotUI)
-            .GetField("iconImage", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+            .GetField("iconImage", BindingFlags.NonPublic | BindingFlags.Instance)
             ?.SetValue(_slotUI, _iconImage);
     }
 
