@@ -5,7 +5,7 @@ using UnityEngine.UI;
 /// <summary>
 /// Handles the visual representation of the generator slot UI element.
 /// This component is responsible only for UI behavior:
-/// displaying the generatory icon, hiding it when no generator is available,
+/// displaying the generator icon, hiding it when no generator is available,
 /// and exposing UI events (click, drag)for higher-level systems to use.
 /// </summary>
 public class GeneratorSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
@@ -18,6 +18,12 @@ public class GeneratorSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     private Image iconImage;
 
     /// <summary>
+    /// The currently active generator prefab provided by the GeneratorManager.
+    /// Stored so InputManager can retrieve it during click or drag placement.
+    /// </summary>
+    private GameObject currentPrefab;
+
+    /// <summary>
     /// Unity lifecycle method.
     /// Ensures the icon starts with no sprite assigned while preserving
     /// the background color and alpha configured in the Inspector.
@@ -28,12 +34,16 @@ public class GeneratorSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         {
             iconImage.sprite = null;
         }
-
     }
 
+    /// <summary>
+    /// Subscribes to the GeneratorManager event so the UI updates
+    /// whenever the active generator changes.
+    /// </summary>
     public void Start()
     {
-        // Debug.Log($"GeneratorSlotUI Namespace: {GetType().Namespace}");
+        GeneratorManager gm = FindAnyObjectByType<GeneratorManager>();
+        if (gm != null) gm.OnGeneratorChanged += HandleGeneratorChanged;
     }
 
     /// <summary>
@@ -103,4 +113,31 @@ public class GeneratorSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         // Placeholder for future drag logic.
         Debug.Log("GeneratorSlotUI.OnEndDrag");
     }
+
+    /// <summary>
+    /// Handles updates from the GeneratorManager when the active generator changes.
+    /// Extracts the sprite from the prefab and updates the UI accordingly.
+    /// </summary>
+    /// <param name="prefab">The newly active generator prefab</param>
+    private void HandleGeneratorChanged(GameObject prefab)
+    {
+        currentPrefab = prefab;
+
+        if (prefab == null)
+        {
+            SetGeneratorSprite(null);
+            return;
+        }
+        
+        // Extract sprite from prefab
+        SpriteRenderer spriteRenderer = prefab.GetComponentInChildren<SpriteRenderer>();
+        SetGeneratorSprite(spriteRenderer != null ? spriteRenderer.sprite : null);
+    }
+    
+    /// <summary>
+    /// Returns the currently active generator prefab.
+    /// Used by InputManager during click or drag placement.
+    /// </summary>
+    /// <returns>The active generator prefab, or null if no generator is available.</returns>
+    public GameObject GetCurrentPrefab() => currentPrefab;
 }
