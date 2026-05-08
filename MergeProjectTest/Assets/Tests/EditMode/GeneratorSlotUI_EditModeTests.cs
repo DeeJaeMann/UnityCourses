@@ -127,6 +127,51 @@ public class GeneratorSlotUIEditModeTests
         Assert.AreEqual(1f, _iconImage.color.a, "SetGeneratorSprite should force the icon alpha to 1.");
     }
     
+    /// <summary>
+    /// Ensures that passing <c>null</c> to <see cref="GeneratorSlotUI.SetGeneratorSprite"/>
+    /// correctly sets the icon's alpha to zero, fully hiding the image.
+    /// This verifies the UI's null‑sprite visibility behavior in isolation from lifecycle events.
+    /// </summary>
+    [Test]
+    public void SetGeneratorSprite_Null_SetsAlphaToZero()
+    {
+        // Arrange
+        _iconImage.color = new Color(0.5f, 0.5f, 0.5f, 1f);
+
+        // Act
+        _slotUI.SetGeneratorSprite(null);
+
+        // Assert
+        Assert.AreEqual(0f, _iconImage.color.a,
+            "SetGeneratorSprite(null) should set the icon alpha to zero.");
+    }
+    
+    /// <summary>
+    /// Ensures that assigning a non-null sprite through <see cref="GeneratorSlotUI.SetGeneratorSprite"/>
+    /// preserves the existing RGB values on the icon while updating only the alpha.
+    /// This verifies that color integrity is maintained during sprite updates.
+    /// </summary>
+    [Test]
+    public void SetGeneratorSprite_PreservesRGB()
+    {
+        // Arrange
+        var sprite = Sprite.Create(Texture2D.whiteTexture, new Rect(0,0,1,1), Vector2.zero);
+        _iconImage.color = new Color(0.2f, 0.4f, 0.6f, 0.25f);
+
+        // Act
+        _slotUI.SetGeneratorSprite(sprite);
+
+        // Assert
+        Assert.AreEqual(0.2f, _iconImage.color.r,
+            "SetGeneratorSprite should preserve the icon's red channel.");
+        Assert.AreEqual(0.4f, _iconImage.color.g,
+            "SetGeneratorSprite should preserve the icon's green channel.");
+        Assert.AreEqual(0.6f, _iconImage.color.b,
+            "SetGeneratorSprite should preserve the icon's blue channel.");
+        Assert.AreEqual(1f, _iconImage.color.a,
+            "SetGeneratorSprite should set the icon alpha to 1 when a sprite is provided.");
+    }
+    
     #endregion
     #region HandleGeneratorChangedTests
     
@@ -203,6 +248,136 @@ public class GeneratorSlotUIEditModeTests
         method.Invoke(_slotUI, new object[] { prefab });
 
         Assert.IsNull(_iconImage.sprite);
+    }
+    
+    /// <summary>
+    /// Verifies that when a prefab containing a <see cref="SpriteRenderer"/> is passed to
+    /// <c>HandleGeneratorChanged</c>, the icon alpha is set to 1 to ensure full visibility.
+    /// This confirms correct UI opacity behavior when a valid sprite is available.
+    /// </summary>
+    [Test]
+    public void HandleGeneratorChanged_WithSprite_SetsAlphaToOne()
+    {
+        // Arrange
+        var prefab = new GameObject("Prefab");
+        SpriteRenderer spriteRenderer = prefab.AddComponent<SpriteRenderer>();
+        spriteRenderer.sprite = Sprite.Create(Texture2D.whiteTexture, new Rect(0,0,1,1), Vector2.zero);
+
+        MethodInfo method = typeof(GeneratorSlotUI)
+            .GetMethod("HandleGeneratorChanged", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        Assert.IsNotNull(method, "HandleGeneratorChanged method not found via reflection.");
+        
+        // Act
+        method.Invoke(_slotUI, new object[] { prefab });
+
+        // Assert
+        Assert.AreEqual(1f, _iconImage.color.a,
+            "HandleGeneratorChanged should set the icon alpha to 1 when a sprite is present.");
+    }
+    
+    /// <summary>
+    /// Ensures that when <c>HandleGeneratorChanged</c> receives a prefab without a
+    /// <see cref="SpriteRenderer"/>, the icon alpha is set to zero.
+    /// This verifies correct UI visibility behavior when no sprite is available.
+    /// </summary>
+    [Test]
+    public void HandleGeneratorChanged_NoSprite_SetsAlphaToZero()
+    {
+        // Arrange
+        var prefab = new GameObject("Prefab_NoSpriteRenderer");
+
+        MethodInfo method = typeof(GeneratorSlotUI)
+            .GetMethod("HandleGeneratorChanged", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        Assert.IsNotNull(method, "HandleGeneratorChanged method not found via reflection.");
+        
+        // Act
+        method.Invoke(_slotUI, new object[] { prefab });
+
+        // Assert
+        Assert.AreEqual(0f, _iconImage.color.a,
+            "HandleGeneratorChanged should set the icon alpha to 0 when no sprite is found.");
+    }
+    
+    /// <summary>
+    /// Verifies that invoking <c>HandleGeneratorChanged</c> assigns the prefab and that
+    /// <see cref="GeneratorSlotUI.GetCurrentPrefab"/> returns the same instance.
+    /// This confirms correct internal state updates independent of Unity lifecycle events.
+    /// </summary>
+    [Test]
+    public void GetCurrentPrefab_ReturnsAssignedPrefab()
+    {
+        // Arrange
+        var prefab = new GameObject("TestPrefab");
+
+        MethodInfo method = typeof(GeneratorSlotUI)
+            .GetMethod("HandleGeneratorChanged", BindingFlags.NonPublic | BindingFlags.Instance);
+        
+        Assert.IsNotNull(method, "HandleGeneratorChanged method not found via reflection.");
+
+        // Act
+        method.Invoke(_slotUI, new object[] { prefab });
+
+        // Assert
+        Assert.AreSame(prefab, _slotUI.GetCurrentPrefab(),
+            "GetCurrentPrefab should return the same prefab passed to HandleGeneratorChanged.");
+    }
+    #endregion
+    #region OnSlotClickedTests
+
+    /// <summary>
+    /// Ensures that calling <see cref="GeneratorSlotUI.OnSlotClicked"/> when no prefab
+    /// is assigned performs no action and does not throw exceptions.
+    /// This verifies safe click handling when the slot is empty.
+    /// </summary>
+    [Test]
+    public void OnSlotClicked_NoPrefab_DoesNothing()
+    {
+        // Act + Assert: Should not throw
+        Assert.DoesNotThrow(() => _slotUI.OnSlotClicked(),
+            "OnSlotClicked should not throw when no prefab is assigned.");
+    }
+    
+    /// <summary>
+    /// Ensures that <see cref="GeneratorSlotUI.OnSlotClicked"/> performs no action and
+    /// throws no exceptions when the InputManager reference is missing.
+    /// This verifies safe click handling when the slot has a prefab but no input system.
+    /// </summary>
+    [Test]
+    public void OnSlotClicked_NoInputManager_DoesNothing()
+    {
+        // Arrange
+        var prefab = new GameObject("TestPrefab");
+        typeof(GeneratorSlotUI)
+            .GetMethod("HandleGeneratorChanged", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.Invoke(_slotUI, new object[] { prefab });
+
+        // Act + Assert
+        Assert.DoesNotThrow(() => _slotUI.OnSlotClicked(),
+            "OnSlotClicked should not throw when no InputManager is assigned.");
+    }
+    
+    #endregion
+    #region DragMethodsTests
+
+    /// <summary>
+    /// Ensures that all drag-related methods safely handle a null event payload
+    /// when no InputManager is assigned. This verifies that drag calls do not
+    /// throw in EditMode where no EventSystem exists.
+    /// </summary>
+    [Test]
+    public void DragMethods_NoInputManager_DoNothing()
+    {
+        // Act + Assert
+        Assert.DoesNotThrow(() => _slotUI.OnBeginDrag(null),
+            "OnBeginDrag should not throw when eventData is null.");
+
+        Assert.DoesNotThrow(() => _slotUI.OnDrag(null),
+            "OnDrag should not throw when eventData is null.");
+
+        Assert.DoesNotThrow(() => _slotUI.OnEndDrag(null),
+            "OnEndDrag should not throw when eventData is null.");
     }
     
     #endregion

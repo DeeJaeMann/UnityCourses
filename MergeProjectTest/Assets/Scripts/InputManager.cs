@@ -155,10 +155,11 @@ public class InputManager : MonoBehaviour
     private void TryPlaceAtScreenPosition(Vector3 screenPosition)
     {
         if (_activePrefab is null) return;
+        if (_mainCamera is null) return;
         
         Vector3 worldPosition = _mainCamera.ScreenToWorldPoint(screenPosition);
         var board = FindAnyObjectByType<BoardManager>();
-        if (board is null) return;
+        if (board is null || board.boardTilemap is null) return;
         
         Vector3Int cellPosition = board.boardTilemap.WorldToCell(worldPosition);
 

@@ -18,11 +18,29 @@ public class GeneratorSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     private Image iconImage;
 
     /// <summary>
+    /// Reference to the <see cref="InputManager"/> responsible for handling
+    /// click and drag placement requests. This must be assigned in the Inspector.
+    /// The slot uses this reference to notify the input system when the user
+    /// clicks or drags the generator icon.
+    /// </summary>
+    [Header("Managers")] [SerializeField]
+    private InputManager inputManager;
+    
+    /// <summary>
     /// The currently active generator prefab provided by the GeneratorManager.
     /// Stored so InputManager can retrieve it during click or drag placement.
     /// </summary>
-    private GameObject currentPrefab;
+    private GameObject _currentPrefab;
 
+    /// <summary>
+    /// Cached reference to the <see cref="GeneratorManager"/> that provides
+    /// the currently active generator prefab. This reference is used to
+    /// subscribe to generator change events so the UI updates whenever the
+    /// active generator is modified. Assigned automatically at runtime using
+    /// <c>FindAnyObjectByType</c>.
+    /// </summary>
+    private GeneratorManager _generatorManager;
+    
     /// <summary>
     /// Unity lifecycle method.
     /// Ensures the icon starts with no sprite assigned while preserving
@@ -30,7 +48,7 @@ public class GeneratorSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     /// </summary>
     private void Awake()
     {
-        if (iconImage != null)
+        if (iconImage is not null)
         {
             iconImage.sprite = null;
         }
@@ -42,8 +60,19 @@ public class GeneratorSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     /// </summary>
     public void Start()
     {
-        GeneratorManager gm = FindAnyObjectByType<GeneratorManager>();
-        if (gm != null) gm.OnGeneratorChanged += HandleGeneratorChanged;
+        _generatorManager = FindAnyObjectByType<GeneratorManager>();
+        if (_generatorManager is not null) _generatorManager.OnGeneratorChanged += HandleGeneratorChanged;
+    }
+
+    /// <summary>
+    /// Unity lifecycle method invoked when this UI element is destroyed.
+    /// Ensures the slot unsubscribes from <see cref="GeneratorManager.OnGeneratorChanged"/>
+    /// to prevent dangling event handlers, memory leaks, or callbacks targeting
+    /// a destroyed object.
+    /// </summary>
+    public void OnDestroy()
+    {
+        if (_generatorManager is not null) _generatorManager.OnGeneratorChanged -= HandleGeneratorChanged;
     }
 
     /// <summary>
@@ -53,21 +82,25 @@ public class GeneratorSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     /// <param name="sprite">The sprite to display. If null, the icon is hidden.</param>
     public void SetGeneratorSprite(Sprite sprite)
     {
-        if (iconImage == null)
+        if (iconImage is null)
             return;
 
-        if (sprite == null)
-        {
-            iconImage.sprite = null;
-            return;
-        }
+        // TODO: Verify why changed
+        // if (sprite is null)
+        // {
+        //     iconImage.sprite = null;
+        //     return;
+        // }
         
         // Assign and show the icon
         iconImage.sprite = sprite;
 
-        Color updatedColor = iconImage.color;
-        updatedColor.a = 1f;
-        iconImage.color = updatedColor;
+        // TODO: Verify why changed
+        // Color updatedColor = iconImage.color;
+        // updatedColor.a = 1f;
+        // iconImage.color = updatedColor;
+        
+        iconImage.color = new Color(iconImage.color.r, iconImage.color.g, iconImage.color.b, sprite is null ? 0f :1f);
     }
 
     /// <summary>
@@ -80,6 +113,9 @@ public class GeneratorSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         // Placeholder for future click-to-place logic.
         // Will call InputManager.BeginClickPlacement(prefab) later.
         Debug.Log("GeneratorSlotUI.OnSlotClicked");
+        if (_currentPrefab is null || inputManager is null) return;
+        
+        inputManager.BeginClickPlacement(_currentPrefab);
     }
 
     /// <summary>
@@ -90,6 +126,9 @@ public class GeneratorSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     public void OnBeginDrag(PointerEventData eventData)
     {
         Debug.Log("GeneratorSlotUI.OnBeginDrag");
+        if (_currentPrefab is null || inputManager is null) return;
+        
+        inputManager.BeginDragPlacement(_currentPrefab);
     }
     
     /// <summary>
@@ -101,6 +140,9 @@ public class GeneratorSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     {
         // Placeholder for future drag logic.
         Debug.Log("GeneratorSlotUI.OnDrag");
+        if (inputManager is null) return;
+        
+        inputManager.UpdateDragPlacement(eventData.position);
     }
 
     /// <summary>
@@ -112,6 +154,9 @@ public class GeneratorSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     {
         // Placeholder for future drag logic.
         Debug.Log("GeneratorSlotUI.OnEndDrag");
+        if (inputManager is null) return;
+        
+        inputManager.EndDragPlacement(eventData.position);
     }
 
     /// <summary>
@@ -121,9 +166,9 @@ public class GeneratorSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     /// <param name="prefab">The newly active generator prefab</param>
     private void HandleGeneratorChanged(GameObject prefab)
     {
-        currentPrefab = prefab;
+        _currentPrefab = prefab;
 
-        if (prefab == null)
+        if (prefab is null)
         {
             SetGeneratorSprite(null);
             return;
@@ -131,7 +176,7 @@ public class GeneratorSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         
         // Extract sprite from prefab
         SpriteRenderer spriteRenderer = prefab.GetComponentInChildren<SpriteRenderer>();
-        SetGeneratorSprite(spriteRenderer != null ? spriteRenderer.sprite : null);
+        SetGeneratorSprite(spriteRenderer is not null ? spriteRenderer.sprite : null);
     }
     
     /// <summary>
@@ -139,5 +184,5 @@ public class GeneratorSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     /// Used by InputManager during click or drag placement.
     /// </summary>
     /// <returns>The active generator prefab, or null if no generator is available.</returns>
-    public GameObject GetCurrentPrefab() => currentPrefab;
+    public GameObject GetCurrentPrefab() => _currentPrefab;
 }

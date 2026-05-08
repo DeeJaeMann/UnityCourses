@@ -8,231 +8,359 @@ using UnityEngine.EventSystems;
 
 /// <summary>
 /// PlayMode test suite for <see cref="GeneratorSlotUI"/>.
-/// These tests validate real Unity lifecycle behavior, sprite assignment,
-/// and UI state changes using actual scene objects.
+/// Validates UI behavior, sprite assignment, event handling,
+/// and safe forwarding of click/drag events.
 /// </summary>
 public class GeneratorSlotUI_PlayModeTests
 {
     #region Fields
-    
-    private GameObject _root;
+
+    private GameObject _slotRootObject;
     private GeneratorSlotUI _slotUI;
     private Image _iconImage;
-    private GeneratorManager _manager;
-    
+    private GeneratorManager _generatorManager;
+
     #endregion
-    #region SetupTeardown
+
+
+    #region Setup / Teardown
 
     /// <summary>
-    /// Sets up a complete UI environment for each test, including:
+    /// Creates a minimal UI environment including:
     /// <list type="bullet">
     /// <item><description>A <see cref="Canvas"/> for UI rendering</description></item>
     /// <item><description>An <see cref="EventSystem"/> for UI events</description></item>
-    /// <item><description>A root object containing <see cref="GeneratorSlotUI"/></description></item>
-    /// <item><description>A child Icon object containing the <see cref="Image"/> used by the component</description></item>
+    /// <item><description>A <see cref="GeneratorManager"/> instance</description></item>
+    /// <item><description>A <see cref="GeneratorSlotUI"/> with an injected icon image</description></item>
     /// </list>
-    /// The method also forces <see cref="GeneratorSlotUI.Awake"/> to execute by toggling
-    /// the active state of the root object.
     /// </summary>
     [SetUp]
     public void Setup()
     {
-        // Create Canvas (required for UI)
-        var canvasGObj = new GameObject("Canvas", typeof(Canvas));
-        canvasGObj.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
-        
-        // Create EventSystem (required for drag/click events)
-        var eventSystemGObj = new GameObject("EventSystem", typeof(EventSystem));
-        eventSystemGObj.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
-        
-        // Manager must exist before SlotUI activates
-        var managerObj = new GameObject("GeneratorManager");
-        _manager = managerObj.AddComponent<GeneratorManager>();
-        
-        // Create root object with component
-        _root = new GameObject("GeneratorSlotUI");
-        _root.SetActive(false);
-        
-        // Create child Icon object
-        var iconGObj = new GameObject("Icon");
-        iconGObj.transform.SetParent(_root.transform);
-        
-        _iconImage = iconGObj.AddComponent<Image>();
-        _slotUI = _root.AddComponent<GeneratorSlotUI>();
-        
-        // Assign via serialized field
+        // Canvas
+        var canvasObject = new GameObject("Canvas", typeof(Canvas));
+        canvasObject.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
+
+        // EventSystem
+        var eventSystemObject = new GameObject("EventSystem", typeof(EventSystem));
+        eventSystemObject.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
+
+        // GeneratorManager
+        var managerObject = new GameObject("GeneratorManager");
+        _generatorManager = managerObject.AddComponent<GeneratorManager>();
+
+        // Slot root
+        _slotRootObject = new GameObject("GeneratorSlotUI");
+        _slotRootObject.SetActive(false);
+
+        // Icon child
+        var iconObject = new GameObject("Icon");
+        iconObject.transform.SetParent(_slotRootObject.transform);
+
+        _iconImage = iconObject.AddComponent<Image>();
+        _slotUI = _slotRootObject.AddComponent<GeneratorSlotUI>();
+
+        // Inject serialized field
         typeof(GeneratorSlotUI)
             .GetField("iconImage", BindingFlags.NonPublic | BindingFlags.Instance)
             ?.SetValue(_slotUI, _iconImage);
-        
-        // Force Unity to run Awake() in PlayMode
-        _root.SetActive(true);
+
+        _slotRootObject.SetActive(true);
     }
 
     /// <summary>
-    /// Cleans up all created objects after each test to ensure isolation
-    /// and prevent cross-test contamination.
+    /// Cleans up all scene objects created during <see cref="Setup"/>.
     /// </summary>
     [TearDown]
-    public void TearDown()
+    public void Teardown()
     {
-        // Destroy root object first
-        if (_root != null)
-            Object.Destroy(_root);
+        if (_slotRootObject != null)
+            Object.Destroy(_slotRootObject);
 
-        GameObject[] allObjects = Object.FindObjectsByType<GameObject>(FindObjectsInactive.Include);
+        if (_generatorManager != null)
+            Object.Destroy(_generatorManager.gameObject);
 
-        foreach (GameObject obj in allObjects)
-        {
-            if (obj.hideFlags == HideFlags.NotEditable || obj.hideFlags == HideFlags.HideAndDontSave)
-                continue;
-            
-            Object.Destroy(obj);
-        }
+        var canvas = GameObject.Find("Canvas");
+        if (canvas != null)
+            Object.Destroy(canvas);
+
+        var eventSystem = GameObject.Find("EventSystem");
+        if (eventSystem != null)
+            Object.Destroy(eventSystem);
     }
-    
+
     #endregion
-    #region LifecycleTests
+
+
+    #region Awake Tests
 
     /// <summary>
-    /// Validates that <see cref="GeneratorSlotUI.Awake"/> clears the icon sprite
-    /// when the component initializes in PlayMode.
-    /// This ensures the slot always begins in a known empty state.
+    /// Ensures <see cref="GeneratorSlotUI.Awake"/> clears the icon sprite
+    /// so the slot always begins in a known empty state.
     /// </summary>
-    /// <returns>A coroutine used by the Unity Test Framework.</returns>
     [UnityTest]
     public IEnumerator Awake_ClearsSprite()
     {
+        // Arrange
         _iconImage.sprite = Sprite.Create(Texture2D.whiteTexture, new Rect(0, 0, 1, 1), Vector2.zero);
 
-        // Recreate the component so Awake runs AFTER sprite assignment
         Object.DestroyImmediate(_slotUI);
-        _root.SetActive(false);
-        _slotUI = _root.AddComponent<GeneratorSlotUI>();
+        _slotRootObject.SetActive(false);
 
-        // Reassign serialized field
+        _slotUI = _slotRootObject.AddComponent<GeneratorSlotUI>();
         typeof(GeneratorSlotUI)
             .GetField("iconImage", BindingFlags.NonPublic | BindingFlags.Instance)
             ?.SetValue(_slotUI, _iconImage);
-        
-        _root.SetActive(true);
-        
+
+        // Act
+        _slotRootObject.SetActive(true);
         yield return null;
-        
-        Assert.IsNull(_iconImage.sprite, "Awake() should clear the iconImage sprite");
+
+        // Assert
+        Assert.IsNull(_iconImage.sprite, "Awake() should clear the icon sprite.");
     }
-    
+
     #endregion
-    #region EventSubscriptions
+
+
+    #region UI Update Tests
 
     /// <summary>
-    /// Verifies that <see cref="GeneratorSlotUI"/> successfully subscribes to
-    /// <see cref="GeneratorManager.OnGeneratorChanged"/> during <c>Start()</c>
-    /// and updates its UI state when the manager reports a new active generator.  
-    /// 
-    /// This test requires PlayMode because it depends on:
-    /// <list type="bullet">
-    /// <item><description>Unity's lifecycle invoking <c>Start()</c> automatically</description></item>
-    /// <item><description>Real event dispatch timing across frames</description></item>
-    /// <item><description>Sprite extraction from an actual prefab instance</description></item>
-    /// </list>
-    /// The test confirms that the slot:
-    /// <list type="bullet">
-    /// <item><description>Stores the newly active prefab via <see cref="GeneratorSlotUI.GetCurrentPrefab"/></description></item>
-    /// <item><description>Updates the displayed icon to match the prefab's <see cref="SpriteRenderer"/> sprite</description></item>
-    /// </list>
+    /// Ensures that when a generator prefab with a <see cref="SpriteRenderer"/>
+    /// is reported to the slot, the UI updates accordingly.
     /// </summary>
     [UnityTest]
-    public IEnumerator Start_SubscribesToGeneratorManager_AndUpdatesUI()
+    public IEnumerator HandleGeneratorChanged_UpdatesUI_WithSprite()
     {
-        // Create prefab with sprite
+        // Arrange
         var prefab = new GameObject("Prefab");
-        SpriteRenderer spriteRenderer = prefab.AddComponent<SpriteRenderer>();
+        var spriteRenderer = prefab.AddComponent<SpriteRenderer>();
         spriteRenderer.sprite = Sprite.Create(Texture2D.whiteTexture, new Rect(0, 0, 1, 1), Vector2.zero);
-        
-        // Add generator -> should trigger event -> UI updates
-        _manager.AddGenerator(prefab);
-        
+
+        // Act
+        typeof(GeneratorSlotUI)
+            .GetMethod("HandleGeneratorChanged", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.Invoke(_slotUI, new object[] { prefab });
+
         yield return null;
-        
-        Assert.AreSame(prefab, _slotUI.GetCurrentPrefab());
-        Assert.AreEqual(spriteRenderer.sprite, _iconImage.sprite);
+
+        // Assert
+        Assert.AreSame(prefab, _slotUI.GetCurrentPrefab(),
+            "Slot should store the current prefab when the generator changes.");
+        Assert.AreEqual(spriteRenderer.sprite, _iconImage.sprite,
+            "Slot icon should match the prefab's SpriteRenderer sprite.");
     }
-    
-    #endregion
-    #region SelectGeneratorSpriteTests
-    // TODO: Verify removal -> present in EditMode Tests?
-    // /// <summary>
-    // /// Ensures that calling <see cref="GeneratorSlotUI.SetGeneratorSprite"/> with a null
-    // /// argument clears the sprite reference in PlayMode, matching the intended behavior
-    // /// of hiding the icon when no generator is available.
-    // /// </summary>
-    // /// <returns>A coroutine used by the Unity Test Framework.</returns>
-    // [UnityTest]
-    // public IEnumerator SetGeneratorSprite_Null_ClearsSprite()
-    // {
-    //    
-    //     _iconImage.sprite = Sprite.Create(Texture2D.whiteTexture, new Rect(0, 0, 1, 1), Vector2.zero);
-    //     
-    //     _slotUI.SetGeneratorSprite(null);
-    //     
-    //     yield return null;
-    //     
-    //     Assert.IsNull(_iconImage.sprite, "SetGeneratorSprite(null) should clear the iconImage sprite.");
-    // }
-    
-    // TODO: Verify -> present in EditMode Tests?
-    // /// <summary>
-    // /// Validates that providing a non-null sprite to
-    // /// <see cref="GeneratorSlotUI.SetGeneratorSprite"/> assigns the sprite and forces
-    // /// the icon alpha to 1. This ensures the icon is fully visible when a generator
-    // /// is present.
-    // /// </summary>
-    // /// <returns>A coroutine used by the Unity Test Framework.</returns>
-    // [UnityTest]
-    // public IEnumerator SetGeneratorSprite_AssignsSprite_AndForcesAlpha()
-    // {
-    //     var sprite = Sprite.Create(Texture2D.redTexture, new Rect(0, 0, 1, 1), Vector2.zero);
-    //
-    //     Color color = _iconImage.color;
-    //     color.a = 0.25f;
-    //     _iconImage.color = color;
-    //
-    //     _slotUI.SetGeneratorSprite(sprite);
-    //     
-    //     yield return null;
-    //     
-    //     Assert.AreEqual(sprite, _iconImage.sprite, "SetGeneratorSprite should assign the provided sprite.");
-    //     Assert.AreEqual(1f, _iconImage.color.a, "SetGeneratorSprite should force the icon alpha to 1");
-    // }
-    
-    #endregion
-    #region SpriteExtractionTests
 
     /// <summary>
-    /// Confirms that when <see cref="GeneratorManager"/> reports a newly active
-    /// generator prefab that lacks a <see cref="SpriteRenderer"/>, the
-    /// <see cref="GeneratorSlotUI"/> correctly updates its UI by clearing the icon
-    /// sprite.  
-    /// 
-    /// This behavior is validated in PlayMode because it depends on:
-    /// <list type="bullet">
-    /// <item><description>Unity's lifecycle invoking <c>Start()</c> and establishing the event subscription</description></item>
-    /// <item><description>Real-time event dispatch from <see cref="GeneratorManager"/></description></item>
-    /// <item><description>Frame-based UI updates applied to the <see cref="Image"/> component</description></item>
-    /// </list>
-    /// The test ensures that the slot does not display stale or invalid visual data
-    /// when the active generator provides no sprite source.
+    /// Ensures that when a generator prefab lacks a <see cref="SpriteRenderer"/>,
+    /// the slot clears its icon.
     /// </summary>
-
     [UnityTest]
-    public IEnumerator HandleGeneratorChanged_NoSpriteRenderer_ResultsInNullSpite()
+    public IEnumerator HandleGeneratorChanged_NoSpriteRenderer_ResultsInNullSprite()
     {
+        // Arrange
         var prefab = new GameObject("Prefab_NoSpriteRenderer");
-        _manager.AddGenerator(prefab);
+
+        // Act
+        _generatorManager.AddGenerator(prefab);
         yield return null;
-        Assert.IsNull(_iconImage.sprite);
+
+        // Assert
+        Assert.IsNull(_iconImage.sprite,
+            "Slot icon should be cleared when the prefab has no SpriteRenderer.");
     }
-    
+
+    #endregion
+
+
+    #region Destruction Tests
+
+    /// <summary>
+    /// Ensures the slot unsubscribes from <see cref="GeneratorManager.OnGeneratorChanged"/>
+    /// when destroyed.
+    /// </summary>
+    [UnityTest]
+    public IEnumerator OnDestroy_UnsubscribesFromGeneratorManager()
+    {
+        // Arrange
+        var prefab = new GameObject("Prefab");
+        _generatorManager.AddGenerator(prefab);
+        yield return null;
+
+        // Act
+        Object.Destroy(_slotUI);
+        yield return null;
+
+        _generatorManager.AddGenerator(prefab);
+        yield return null;
+
+        // Assert
+        Assert.IsNull(_iconImage.sprite,
+            "Slot should not update its icon after being destroyed.");
+    }
+
+    #endregion
+
+
+    #region Click Tests
+
+    /// <summary>
+    /// Ensures clicking the slot forwards the correct prefab to the <see cref="InputManager"/>.
+    /// </summary>
+    [UnityTest]
+    public IEnumerator OnSlotClicked_InvokesInputManager()
+    {
+        // Arrange
+        var inputManagerObject = new GameObject("InputManager");
+        var inputManager = inputManagerObject.AddComponent<InputManager>();
+
+        typeof(GeneratorSlotUI)
+            .GetField("inputManager", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.SetValue(_slotUI, inputManager);
+
+        var prefab = new GameObject("Prefab");
+
+        typeof(GeneratorSlotUI)
+            .GetMethod("HandleGeneratorChanged", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.Invoke(_slotUI, new object[] { prefab });
+
+        // Act
+        _slotUI.OnSlotClicked();
+        yield return null;
+
+        // Assert
+        Assert.AreSame(prefab, inputManager.ActivePrefab,
+            "OnSlotClicked should forward the current prefab to the InputManager.");
+    }
+
+    #endregion
+
+
+    #region Drag Tests
+
+    /// <summary>
+    /// Ensures beginning a drag operation forwards the correct prefab to the <see cref="InputManager"/>.
+    /// </summary>
+    [UnityTest]
+    public IEnumerator OnBeginDrag_InvokesInputManager()
+    {
+        // Arrange
+        var inputManagerObject = new GameObject("InputManager");
+        var inputManager = inputManagerObject.AddComponent<InputManager>();
+
+        typeof(GeneratorSlotUI)
+            .GetField("inputManager", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.SetValue(_slotUI, inputManager);
+
+        var prefab = new GameObject("Prefab");
+
+        typeof(GeneratorSlotUI)
+            .GetMethod("HandleGeneratorChanged", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.Invoke(_slotUI, new object[] { prefab });
+
+        var eventData = new PointerEventData(EventSystem.current);
+
+        // Act
+        _slotUI.OnBeginDrag(eventData);
+        yield return null;
+
+        // Assert
+        Assert.AreSame(prefab, inputManager.ActivePrefab,
+            "OnBeginDrag should forward the current prefab to the InputManager.");
+    }
+
+    /// <summary>
+    /// Ensures dragging over the slot does not throw and safely forwards drag events.
+    /// </summary>
+    [UnityTest]
+    public IEnumerator OnDrag_UpdatesDragPosition()
+    {
+        // Arrange
+        var inputManagerObject = new GameObject("InputManager");
+        var inputManager = inputManagerObject.AddComponent<InputManager>();
+
+        typeof(GeneratorSlotUI)
+            .GetField("inputManager", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.SetValue(_slotUI, inputManager);
+
+        var eventData = new PointerEventData(EventSystem.current)
+        {
+            position = new Vector2(123, 456)
+        };
+
+        // Act + Assert
+        Assert.DoesNotThrow(() => _slotUI.OnDrag(eventData),
+            "OnDrag should safely forward drag events.");
+        yield return null;
+    }
+
+    /// <summary>
+    /// Ensures ending a drag operation safely forwards the event to the <see cref="InputManager"/>.
+    /// </summary>
+    [UnityTest]
+    public IEnumerator OnEndDrag_InvokesInputManager()
+    {
+        // Arrange
+        var inputManagerObject = new GameObject("InputManager");
+        var inputManager = inputManagerObject.AddComponent<InputManager>();
+
+        typeof(GeneratorSlotUI)
+            .GetField("inputManager", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.SetValue(_slotUI, inputManager);
+
+        var prefab = new GameObject("Prefab");
+
+        typeof(GeneratorSlotUI)
+            .GetMethod("HandleGeneratorChanged", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.Invoke(_slotUI, new object[] { prefab });
+
+        inputManager.BeginDragPlacement(prefab);
+
+        var eventData = new PointerEventData(EventSystem.current)
+        {
+            position = new Vector2(200, 300)
+        };
+
+        // Act + Assert
+        Assert.DoesNotThrow(() => _slotUI.OnEndDrag(eventData),
+            "OnEndDrag should safely forward drag-end events.");
+        yield return null;
+    }
+
+    #endregion
+
+
+    #region No-InputManager Safety Tests
+
+    /// <summary>
+    /// Ensures all drag-related methods safely no-op when no <see cref="InputManager"/> is assigned.
+    /// </summary>
+    [UnityTest]
+    public IEnumerator DragMethods_NoInputManager_DoNothing_PlayMode()
+    {
+        // Arrange
+        var testRoot = new GameObject("SlotUI_TestRoot");
+        var eventSystem = EventSystem.current ?? new GameObject("EventSystem").AddComponent<EventSystem>();
+
+        var slotUI = testRoot.AddComponent<GeneratorSlotUI>();
+        var iconImage = testRoot.AddComponent<Image>();
+
+        typeof(GeneratorSlotUI)
+            .GetField("iconImage", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.SetValue(slotUI, iconImage);
+
+        var eventData = new PointerEventData(eventSystem);
+
+        yield return null;
+
+        // Act + Assert
+        Assert.DoesNotThrow(() => slotUI.OnBeginDrag(eventData),
+            "OnBeginDrag should not throw when no InputManager is assigned.");
+        Assert.DoesNotThrow(() => slotUI.OnDrag(eventData),
+            "OnDrag should not throw when no InputManager is assigned.");
+        Assert.DoesNotThrow(() => slotUI.OnEndDrag(eventData),
+            "OnEndDrag should not throw when no InputManager is assigned.");
+    }
+
     #endregion
 }

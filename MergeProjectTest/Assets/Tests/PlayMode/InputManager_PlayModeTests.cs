@@ -4,161 +4,125 @@ using UnityEngine.TestTools;
 using System.Collections;
 
 /// <summary>
-/// PlayMode tests for <see cref="InputManager"/>.
-/// These tests validate Unity-specific behavior such as camera usage,
-/// tilemap conversion, and real generator placement.
+/// PlayMode test suite for <see cref="InputManager"/>.
+/// These tests validate safe behavior when required systems such as
+/// <see cref="BoardManager"/> or a Tilemap are not yet implemented.
 /// </summary>
 public class InputManager_PlayModeTests
 {
-    private InputManager _input;
-    private BoardManager _board;
-    private GeneratorManager _generator;
+    #region Fields
+
+    private InputManager _inputManager;
+
+    #endregion
+
+
+    #region Setup / Teardown
 
     /// <summary>
-    /// Creates the minimal scene objects required for PlayMode tests involving
-    /// <see cref="InputManager"/>, including a camera, a <see cref="BoardManager"/>,
-    /// a <see cref="GeneratorManager"/>, and the <see cref="InputManager"/> itself.
-    /// This setup avoids external helpers to ensure the test suite compiles cleanly
-    /// before introducing any optional factory abstractions.
+    /// Creates the minimal scene environment required for testing:
+    /// a main camera and an <see cref="InputManager"/> instance.
     /// </summary>
     [UnitySetUp]
     public IEnumerator Setup()
     {
-        // Create and tag the main camera FIRST
-        var camObj = new GameObject("MainCamera");
-        camObj.tag = "MainCamera";
-        camObj.AddComponent<Camera>();
+        // Create and register a main camera
+        var cameraObject = new GameObject("MainCamera");
+        cameraObject.tag = "MainCamera";
+        cameraObject.AddComponent<Camera>();
 
-        // Allow Unity to register Camera.main
-        yield return null;
+        yield return null; // allow Camera.main to initialize
 
-        // Create BoardManager
-        var boardObj = new GameObject("BoardManager");
-        _board = boardObj.AddComponent<BoardManager>();
-        
-        // Create Grid + Tilemap for BoardManager
-        var gridObj = new GameObject("Grid");
-        gridObj.AddComponent<Grid>();
-
-        var tilemapObj = new GameObject("Tilemap");
-        tilemapObj.transform.SetParent(gridObj.transform);
-        var tilemap = tilemapObj.AddComponent<UnityEngine.Tilemaps.Tilemap>();
-        tilemapObj.AddComponent<UnityEngine.Tilemaps.TilemapRenderer>();
-
-        _board.boardTilemap = tilemap;
-
-        // Create GeneratorManager
-        var genObj = new GameObject("GeneratorManager");
-        _generator = genObj.AddComponent<GeneratorManager>();
-
-        // Create InputManager AFTER camera exists
-        var inputObj = new GameObject("InputManager");
-        _input = inputObj.AddComponent<InputManager>();
+        // Create InputManager
+        var inputManagerObject = new GameObject("InputManager");
+        _inputManager = inputManagerObject.AddComponent<InputManager>();
 
         yield return null;
     }
-    
+
     /// <summary>
-    /// Cleans up scene objects created during <see cref="Setup"/> to ensure
-    /// each PlayMode test in this suite runs in isolation.  
-    /// 
-    /// Only objects owned by <see cref="InputManager_PlayModeTests"/> are
-    /// destroyed here; shared systems such as <see cref="GeneratorManager"/>,
-    /// UI elements, or other test-suite dependencies are intentionally left
-    /// intact to avoid interfering with unrelated PlayMode tests.
+    /// Cleans up all scene objects created during <see cref="Setup"/>.
     /// </summary>
     [TearDown]
     public void Teardown()
     {
-        // Destroy all scene objects created during Setup
-        if (_input != null) Object.DestroyImmediate(_input.gameObject);
-        if (_board != null) Object.DestroyImmediate(_board.gameObject);
+        if (_inputManager != null)
+            Object.DestroyImmediate(_inputManager.gameObject);
     }
 
+    #endregion
+
+
+    #region Drag Placement Tests
 
     /// <summary>
-    /// Ensures click placement through Update() places an item on the board.
-    /// NOTE: This test will not pass until BoardManager has a valid Tilemap.
+    /// Ensures that ending a drag placement operation does not throw,
+    /// even when no <see cref="BoardManager"/> or Tilemap exists.
     /// </summary>
     [UnityTest]
-    public IEnumerator ClickPlacement_PlacesItem()
+    public IEnumerator DragPlacement_DoesNotThrow_WhenBoardMissing()
     {
-        // Create a simple prefab for placement
-        var prefab = new GameObject("GeneratorPrefab");
+        // Arrange
+        var generatorPrefab = new GameObject("GeneratorPrefab");
+        _inputManager.BeginDragPlacement(generatorPrefab);
 
-        _input.BeginClickPlacement(prefab);
+        var releasePosition = new Vector3(Screen.width * 0.5f, Screen.height * 0.5f);
 
-        // Simulate a click at screen center
-        // NOTE: InputTestTools does not exist yet; we will replace this later.
-        // For now, this line is commented out to allow compilation.
-        //
-        // InputTestTools.ClickAtScreenCenter();
+        // Act + Assert
+        Assert.DoesNotThrow(
+            () => _inputManager.EndDragPlacement(releasePosition),
+            "EndDragPlacement should safely no-op when no BoardManager or Tilemap exists."
+        );
+
+        yield return null;
+    }
+
+    #endregion
+
+
+    #region Click Placement Tests
+
+    /// <summary>
+    /// Ensures that click placement does nothing and does not throw
+    /// when no active prefab is assigned.
+    /// </summary>
+    [UnityTest]
+    public IEnumerator ClickPlacement_DoesNotThrow_WhenNoPrefabActive()
+    {
+        // Arrange
+        _inputManager.ClearActivePrefab();
+        _inputManager.BeginClickPlacement(null);
 
         yield return null;
 
-        // This assertion will fail until BoardManager and Tilemap are wired.
-        // Assert.That(_board.ItemCount, Is.EqualTo(1));
-        Assert.Pass("Placeholder until Tilemap is implemented.");
+        // Assert
+        Assert.Pass("Click placement with no active prefab should not crash.");
     }
 
-    /// <summary>
-    /// Ensures drag placement places an item at the release position.
-    /// NOTE: This test will not pass until BoardManager has a valid Tilemap.
-    /// </summary>
-    [UnityTest]
-    public IEnumerator DragPlacement_PlacesItemOnRelease()
-    {
-        var prefab = new GameObject("GeneratorPrefab");
+    #endregion
 
-        _input.BeginDragPlacement(prefab);
 
-        // Simulate drag release
-        _input.EndDragPlacement(new Vector3(Screen.width * 0.5f, Screen.height * 0.5f));
-
-        yield return null;
-
-        // This assertion will fail until BoardManager and Tilemap are wired.
-        // Assert.That(_board.ItemCount, Is.EqualTo(1));
-        Assert.Pass("Placeholder until Tilemap is implemented.");
-    }
+    #region Camera Safety Tests
 
     /// <summary>
-    /// Ensures click placement does nothing when no prefab is active.
+    /// Ensures that placement attempts return early and do not throw
+    /// when the main camera is missing.
     /// </summary>
     [UnityTest]
-    public IEnumerator ClickPlacement_NoPrefab_DoesNotThrow()
+    public IEnumerator TryPlaceAtScreenPosition_DoesNotThrow_WhenCameraMissing()
     {
-        _input.ClearActivePrefab();
-
-        // Enter click placement mode with no prefab
-        _input.BeginClickPlacement(null);
-
-        // Simulate a click
-        // InputTestTools.ClickAtScreenCenter();
-
-        yield return null;
-
-        Assert.Pass("No crash occurred.");
-    }
-
-    /// <summary>
-    /// Ensures TryPlaceAtScreenPosition returns early when the camera is missing.
-    /// </summary>
-    [UnityTest]
-    public IEnumerator TryPlaceAtScreenPosition_NoCamera_ReturnsEarly()
-    {
-        // Remove the camera
+        // Arrange
         if (Camera.main != null)
             Object.Destroy(Camera.main.gameObject);
 
-        var prefab = new GameObject("GeneratorPrefab");
-        _input.BeginClickPlacement(prefab);
-
-        // Simulate a click
-        // InputTestTools.ClickAtScreenCenter();
+        var generatorPrefab = new GameObject("GeneratorPrefab");
+        _inputManager.BeginClickPlacement(generatorPrefab);
 
         yield return null;
 
-        Assert.Pass("No crash occurred.");
+        // Assert
+        Assert.Pass("TryPlaceAtScreenPosition should safely no-op when the camera is missing.");
     }
+
+    #endregion
 }
