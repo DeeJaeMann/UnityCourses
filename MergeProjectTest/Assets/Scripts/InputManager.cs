@@ -5,13 +5,21 @@ using UnityEngine.InputSystem;
 /// Handles all player input related to placing generators on the board.
 /// This manager receives events from <see cref="GeneratorSlotUI"/> and
 /// coordinates placement validation, coordinate conversion, and generator advancement.
+/// 
+/// The <see cref="InputManager"/> does NOT decide which generator is active.
+/// That responsibility belongs to <see cref="GeneratorManager"/>.
 /// </summary>
 public class InputManager : MonoBehaviour
 {
+    #region Fields
+
     private Camera _mainCamera;
-    
+
+    #endregion
+
+
     #region Singleton
-    
+
     /// <summary>
     /// Gets the singleton instance of the <see cref="InputManager"/>.
     /// Guaranteed to reference the single active instance in the scene,
@@ -36,18 +44,14 @@ public class InputManager : MonoBehaviour
         Instance = this;
         _mainCamera = Camera.main;
     }
+
     #endregion
-    #region State
+
+
+    #region Input State
 
     /// <summary>
     /// Represents the current input mode handled by the <see cref="InputManager"/>.
-    /// The state determines how user interactions are interpreted during generator
-    /// placement operations.
-    /// <list type="bullet">
-    /// <item><description><c>Idle</c> — No placement is active.</description></item>
-    /// <item><description><c>ClickPlacement</c> — A generator is awaiting a single click to place it.</description></item>
-    /// <item><description><c>DragPlacement</c> — A generator is being dragged and will be placed on release.</description></item>
-    /// </list>
     /// </summary>
     private enum InputState
     {
@@ -58,22 +62,22 @@ public class InputManager : MonoBehaviour
 
     /// <summary>
     /// Tracks the current <see cref="InputState"/> used by the <see cref="InputManager"/>.
-    /// This value determines how incoming input events are processed and ensures that
-    /// click‑to‑place and drag‑to‑place behaviors remain mutually exclusive.
     /// </summary>
     private InputState _state = InputState.Idle;
 
     /// <summary>
     /// The prefab currently being placed.
+    /// This is provided by <see cref="GeneratorSlotUI"/> when the user selects a generator.
     /// </summary>
     private GameObject _activePrefab;
 
     #endregion
-    
+
+
     #region Placement Entry Points (Called by GeneratorSlotUI)
 
     /// <summary>
-    /// Begins click-to-place mode for the given prefab.
+    /// Begins click‑to‑place mode for the given generator prefab.
     /// </summary>
     /// <param name="prefab">The generator prefab selected for placement.</param>
     public void BeginClickPlacement(GameObject prefab)
@@ -83,7 +87,7 @@ public class InputManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Begins drat-to-place mode for the given generator prefab.
+    /// Begins drag‑to‑place mode for the given generator prefab.
     /// </summary>
     /// <param name="prefab">The generator prefab selected for placement.</param>
     public void BeginDragPlacement(GameObject prefab)
@@ -94,13 +98,15 @@ public class InputManager : MonoBehaviour
 
     /// <summary>
     /// Updates drag placement preview position.
+    /// (Preview visuals will be implemented in a future iteration.)
     /// </summary>
     /// <param name="screenPosition">The current mouse position in screen coordinates.</param>
     public void UpdateDragPlacement(Vector3 screenPosition)
     {
-        if (_state != InputState.DragPlacement) return;
-        
-        // TODO: Add drag placement
+        if (_state != InputState.DragPlacement)
+            return;
+
+        // TODO: Add drag placement preview visualization.
     }
 
     /// <summary>
@@ -109,77 +115,77 @@ public class InputManager : MonoBehaviour
     /// <param name="screenPosition">The mouse position in screen coordinates at drag release.</param>
     public void EndDragPlacement(Vector3 screenPosition)
     {
-        if (_state != InputState.DragPlacement) return;
+        if (_state != InputState.DragPlacement)
+            return;
+
         TryPlaceAtScreenPosition(screenPosition);
         _state = InputState.Idle;
     }
-    
+
     #endregion
-    
-    #region Click Placement
+
+
+    #region Click Placement (New Input System)
 
     /// <summary>
     /// Handles click‑to‑place input and attempts placement when the left mouse button is pressed.
     /// </summary>
     private void Update()
     {
-        // TODO: Verify old input system?
-        // if (_state == InputState.ClickPlacement && Input.GetMouseButtonDown(0))
-        // {
-        //     // Acceptable here because placement only occurs on a single click, not every frame.
-        //     TryPlaceAtScreenPosition(Input.mousePosition);
-        //     _state = InputState.Idle;
-        // }
-        if (_state == InputState.ClickPlacement)
+        if (_state != InputState.ClickPlacement)
+            return;
+
+        if (Mouse.current?.leftButton.wasPressedThisFrame == true)
         {
-            // NEW INPUT SYSTEM CLICK
-            if (Mouse.current?.leftButton.wasPressedThisFrame == true)
-            {
-                // Mouse position is read only on discrete click events, not every frame.
-                Vector2 mousePos = Mouse.current.position.ReadValue();
-                // Placement logic runs only on user-initiated actions, never per-frame polling.
-                TryPlaceAtScreenPosition(mousePos);
-                _state = InputState.Idle;
-            }
+            Vector2 mousePosition = Mouse.current.position.ReadValue();
+            TryPlaceAtScreenPosition(mousePosition);
+            _state = InputState.Idle;
         }
     }
-    
+
     #endregion
-    
+
+
     #region Placement Logic
 
     /// <summary>
     /// Attempts to place the active generator at the given screen position.
+    /// Performs camera validation, coordinate conversion, tilemap lookup,
+    /// and placement validation before spawning the generator.
     /// </summary>
     /// <param name="screenPosition">The mouse position in screen coordinates.</param>
     private void TryPlaceAtScreenPosition(Vector3 screenPosition)
     {
-        if (_activePrefab is null) return;
-        if (_mainCamera is null) return;
-        
-        Vector3 worldPosition = _mainCamera.ScreenToWorldPoint(screenPosition);
-        var board = FindAnyObjectByType<BoardManager>();
-        if (board is null || board.boardTilemap is null) return;
-        
-        Vector3Int cellPosition = board.boardTilemap.WorldToCell(worldPosition);
+        if (_activePrefab == null)
+            return;
 
-        if (board.CanPlace(cellPosition))
+        if (_mainCamera == null)
+            return;
+
+        Vector3 worldPosition = _mainCamera.ScreenToWorldPoint(screenPosition);
+
+        var boardManager = FindAnyObjectByType<BoardManager>();
+        if (boardManager == null || boardManager.boardTilemap == null)
+            return;
+
+        Vector3Int cellPosition = boardManager.boardTilemap.WorldToCell(worldPosition);
+
+        if (boardManager.CanPlace(cellPosition))
         {
-            // Placement occurs only on user action, not per frame.
-            board.TryPlaceItem(_activePrefab, cellPosition);
-            var generator = FindAnyObjectByType<GeneratorManager>();
-            if (generator is not null)
-            {
-                // Generator advancement is infrequent and tied to placement events.
-                generator.Advance();
-            }
+            boardManager.TryPlaceItem(_activePrefab, cellPosition);
+
+            var generatorManager = FindAnyObjectByType<GeneratorManager>();
+            generatorManager?.Advance();
         }
     }
-    
+
     #endregion
-    #region Test Accessors
-    
+
+
+    #region Test Accessors (Editor Only)
+
 #if UNITY_EDITOR
+
     /// <summary>
     /// Exposes the currently active prefab for EditMode tests.
     /// </summary>
@@ -199,9 +205,8 @@ public class InputManager : MonoBehaviour
     /// Clears the cached camera reference for EditMode tests.
     /// </summary>
     public void ForceClearCamera() => _mainCamera = null;
+
 #endif
 
-    
     #endregion
-    
 }

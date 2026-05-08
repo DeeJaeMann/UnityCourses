@@ -1,51 +1,110 @@
-using UnityEngine;
 using System;
-using System.Collections.Generic;
+using UnityEngine;
 
 /// <summary>
-/// Manages the queue of available generators and exposes the current one.
-/// Notifies UI when the active generator changes.
+/// Global state machine responsible for tracking the currently active generator
+/// and notifying listeners (UI, input systems, etc.) whenever the active generator changes.
+/// 
+/// This component does NOT store the full list of available generators.
+/// That responsibility belongs to <see cref="GeneratorInventory"/>.
+/// 
+/// The manager simply:
+/// <list type="bullet">
+/// <item><description>Receives generators from the inventory</description></item>
+/// <item><description>Tracks the current generator index</description></item>
+/// <item><description>Exposes the active generator</description></item>
+/// <item><description>Raises <see cref="OnGeneratorChanged"/> when the active generator updates</description></item>
+/// </list>
 /// </summary>
 public class GeneratorManager : MonoBehaviour
 {
-    [Header("Available Generators")] [SerializeField] private List<GameObject> availableGenerators = new();
+    #region Fields
 
-    private int currentIndex = 0;
+    /// <summary>
+    /// The list of generators provided by <see cref="GeneratorInventory"/>.
+    /// This list is append‑only and represents the order in which generators
+    /// become available to the player.
+    /// </summary>
+    private readonly System.Collections.Generic.List<GameObject> _generatorSequence = new();
+
+    /// <summary>
+    /// Index of the currently active generator within <see cref="_generatorSequence"/>.
+    /// </summary>
+    private int _currentGeneratorIndex = 0;
+
+    #endregion
+
+
+    #region Events
 
     /// <summary>
     /// Fired whenever the active generator changes.
+    /// Subscribers (UI, input systems) should update their state accordingly.
     /// </summary>
     public event Action<GameObject> OnGeneratorChanged;
 
-    /// <summary>
-    /// Returns the currently active generator prefab.
-    /// </summary>
-    public GameObject Current =>
-        (availableGenerators.Count > 0 && currentIndex < availableGenerators.Count)
-            ? availableGenerators[currentIndex]
-            : null;
+    #endregion
+
+
+    #region Public Properties
 
     /// <summary>
-    /// Moves to the next generator in the list.
-    /// Called after a generator is placed.
+    /// Returns the currently active generator prefab, or <c>null</c> if no generators
+    /// have been provided yet.
+    /// </summary>
+    public GameObject CurrentGenerator =>
+        (_generatorSequence.Count > 0 && _currentGeneratorIndex < _generatorSequence.Count)
+            ? _generatorSequence[_currentGeneratorIndex]
+            : null;
+
+    #endregion
+
+
+    #region Public API
+
+    /// <summary>
+    /// Adds a generator prefab to the sequence. This method is called exclusively
+    /// by <see cref="GeneratorInventory"/> when new generators become available.
+    /// 
+    /// If this is the first generator added, the manager immediately notifies listeners.
+    /// </summary>
+    /// <param name="generatorPrefab">The generator prefab to add.</param>
+    public void AddGenerator(GameObject generatorPrefab)
+    {
+        if (generatorPrefab == null)
+        {
+            Debug.LogWarning($"{nameof(GeneratorManager)}: Attempted to add a null generator prefab.");
+            return;
+        }
+
+        _generatorSequence.Add(generatorPrefab);
+
+        // If this is the first generator, notify listeners immediately
+        if (_generatorSequence.Count == 1)
+            OnGeneratorChanged?.Invoke(CurrentGenerator);
+    }
+
+    /// <summary>
+    /// Advances to the next generator in the sequence. This is typically called
+    /// after the player places the current generator on the board.
+    /// 
+    /// If already at the final generator, the manager remains on the last entry.
     /// </summary>
     public void Advance()
     {
-        if (availableGenerators.Count == 0) return;
-        
-        currentIndex = Mathf.Min(currentIndex + 1, availableGenerators.Count - 1);
-        OnGeneratorChanged?.Invoke(Current);
+        if (_generatorSequence.Count == 0)
+            return;
+
+        // Clamp to last generator
+        int nextIndex = Mathf.Min(_currentGeneratorIndex + 1, _generatorSequence.Count - 1);
+
+        // Only fire event if the generator actually changed
+        if (nextIndex != _currentGeneratorIndex)
+        {
+            _currentGeneratorIndex = nextIndex;
+            OnGeneratorChanged?.Invoke(CurrentGenerator);
+        }
     }
 
-    /// <summary>
-    /// Adds a new generator to the queue (future reward system).
-    /// </summary>
-    /// <param name="prefab">The generator prefab to add to the queue.</param>
-    public void AddGenerator(GameObject prefab)
-    {
-        availableGenerators.Add(prefab);
-        
-        // If this is the first generator, notify UI
-        if (availableGenerators.Count == 1) OnGeneratorChanged?.Invoke(Current);
-    }
+    #endregion
 }

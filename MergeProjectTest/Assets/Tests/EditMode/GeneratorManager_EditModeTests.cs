@@ -4,15 +4,17 @@ using UnityEngine;
 /// <summary>
 /// EditMode test suite for <see cref="GeneratorManager"/>.
 /// Covers all logic that does not require PlayMode execution,
-/// including generator queue behavior, event firing, and index handling.
+/// including generator sequencing, event firing, and index handling.
 /// </summary>
 public class GeneratorManager_EditModeTests
 {
     private GameObject _root;
     private GeneratorManager _manager;
 
+    #region Setup / Teardown
+
     /// <summary>
-    /// Creates a fresh GeneratorManager instance before each test.
+    /// Creates a fresh <see cref="GeneratorManager"/> instance before each test.
     /// </summary>
     [SetUp]
     public void Setup()
@@ -30,45 +32,53 @@ public class GeneratorManager_EditModeTests
         Object.DestroyImmediate(_root);
     }
 
+    #endregion
+
+
     #region Property Tests
 
     /// <summary>
-    /// Ensures Current returns null when no generators are available.
+    /// Ensures <see cref="GeneratorManager.CurrentGenerator"/> returns null
+    /// when no generators have been added.
     /// </summary>
     [Test]
-    public void Current_ReturnsNull_WhenListEmpty()
+    public void CurrentGenerator_ReturnsNull_WhenEmpty()
     {
         Assert.IsNull(
-            _manager.Current,
-            "Current should return null when no generators have been added."
+            _manager.CurrentGenerator,
+            "CurrentGenerator should return null when no generators have been added."
         );
     }
 
     /// <summary>
-    /// Ensures Current returns the first generator when one is added.
+    /// Ensures <see cref="GeneratorManager.CurrentGenerator"/> returns the first
+    /// generator added to the sequence.
     /// </summary>
     [Test]
-    public void Current_ReturnsFirstGenerator_WhenOneAdded()
+    public void CurrentGenerator_ReturnsFirst_WhenOneAdded()
     {
-        GameObject prefab = new GameObject("GeneratorA");
+        var prefab = new GameObject("GeneratorA");
 
         _manager.AddGenerator(prefab);
 
         Assert.AreSame(
             prefab,
-            _manager.Current,
-            "Current should return the first generator added to the list."
+            _manager.CurrentGenerator,
+            "CurrentGenerator should return the first generator added."
         );
     }
 
     #endregion
+
+
     #region AddGenerator Tests
 
     /// <summary>
-    /// Ensures AddGenerator fires OnGeneratorChanged when adding the first generator.
+    /// Ensures <see cref="GeneratorManager.AddGenerator"/> fires
+    /// <see cref="GeneratorManager.OnGeneratorChanged"/> when adding the first generator.
     /// </summary>
     [Test]
-    public void AddGenerator_FiresEvent_WhenFirstGeneratorAdded()
+    public void AddGenerator_FiresEvent_WhenFirstAdded()
     {
         var prefab = new GameObject("GeneratorA");
 
@@ -85,7 +95,8 @@ public class GeneratorManager_EditModeTests
     }
 
     /// <summary>
-    /// Ensures AddGenerator does not fire OnGeneratorChanged when adding additional generators.
+    /// Ensures <see cref="GeneratorManager.AddGenerator"/> does NOT fire
+    /// <see cref="GeneratorManager.OnGeneratorChanged"/> when adding additional generators.
     /// </summary>
     [Test]
     public void AddGenerator_DoesNotFireEvent_WhenNotFirst()
@@ -107,13 +118,16 @@ public class GeneratorManager_EditModeTests
     }
 
     #endregion
+
+
     #region Advance Tests
 
     /// <summary>
-    /// Ensures Advance does nothing when no generators exist.
+    /// Ensures <see cref="GeneratorManager.Advance"/> does nothing
+    /// when no generators exist.
     /// </summary>
     [Test]
-    public void Advance_DoesNothing_WhenListEmpty()
+    public void Advance_DoesNothing_WhenEmpty()
     {
         int eventCount = 0;
         _manager.OnGeneratorChanged += _ => eventCount++;
@@ -125,11 +139,16 @@ public class GeneratorManager_EditModeTests
             eventCount,
             "Advance should not fire events when no generators exist."
         );
-        Assert.IsNull(_manager.Current);
+
+        Assert.IsNull(
+            _manager.CurrentGenerator,
+            "CurrentGenerator should remain null when no generators exist."
+        );
     }
 
     /// <summary>
-    /// Ensures Advance does not move past the last generator.
+    /// Ensures <see cref="GeneratorManager.Advance"/> clamps at the last generator
+    /// and does not move past the end of the sequence.
     /// </summary>
     [Test]
     public void Advance_ClampsAtLastGenerator()
@@ -145,13 +164,14 @@ public class GeneratorManager_EditModeTests
 
         Assert.AreSame(
             prefabB,
-            _manager.Current,
-            "Advance should clamp at the last generator in the list."
+            _manager.CurrentGenerator,
+            "Advance should clamp at the last generator in the sequence."
         );
     }
 
     /// <summary>
-    /// Ensures Advance fires OnGeneratorChanged when moving to the next generator.
+    /// Ensures <see cref="GeneratorManager.Advance"/> fires
+    /// <see cref="GeneratorManager.OnGeneratorChanged"/> when moving to the next generator.
     /// </summary>
     [Test]
     public void Advance_FiresEvent_WhenMovingToNext()
@@ -173,5 +193,6 @@ public class GeneratorManager_EditModeTests
             "Advance should fire OnGeneratorChanged when moving to the next generator."
         );
     }
+
     #endregion
 }

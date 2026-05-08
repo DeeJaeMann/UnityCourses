@@ -17,6 +17,7 @@ public class BoardManager_EditModeTests
 
     #endregion
 
+
     #region SetupTeardown
 
     /// <summary>
@@ -31,7 +32,7 @@ public class BoardManager_EditModeTests
 
         // Manually initialize the private dictionary because Awake() will not run in EditMode.
         typeof(BoardManager)
-            .GetField("items", BindingFlags.NonPublic | BindingFlags.Instance)
+            .GetField("_items", BindingFlags.NonPublic | BindingFlags.Instance)
             ?.SetValue(_board, new Dictionary<Vector3Int, BoardItem>());
     }
 
@@ -46,6 +47,7 @@ public class BoardManager_EditModeTests
     }
 
     #endregion
+
 
     #region IsOccupiedTests
 
@@ -86,6 +88,7 @@ public class BoardManager_EditModeTests
 
     #endregion
 
+
     #region GetItemTests
 
     /// <summary>
@@ -125,6 +128,7 @@ public class BoardManager_EditModeTests
 
     #endregion
 
+
     #region RemoveItemTests
 
     /// <summary>
@@ -144,6 +148,7 @@ public class BoardManager_EditModeTests
 
     #endregion
 
+
     #region Helpers
 
     /// <summary>
@@ -156,21 +161,21 @@ public class BoardManager_EditModeTests
         BoardItem item = gObj.AddComponent<BoardItem>();
 
         typeof(BoardItem)
-            .GetField("prefabReference", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+            .GetField("prefabReference", BindingFlags.NonPublic | BindingFlags.Instance)
             ?.SetValue(item, gObj);
 
         return item;
     }
 
     /// <summary>
-    /// Retrieves the private <c>items</c> dictionary from <see cref="BoardManager"/>
+    /// Retrieves the private <c>_items</c> dictionary from <see cref="BoardManager"/>
     /// using reflection so tests can inject items without Tilemap or pooling.
     /// </summary>
     private Dictionary<Vector3Int, BoardItem> GetInternalDictionary()
     {
         return (Dictionary<Vector3Int, BoardItem>)
             typeof(BoardManager)
-                .GetField("items", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                .GetField("_items", BindingFlags.NonPublic | BindingFlags.Instance)
                 ?.GetValue(_board);
     }
 

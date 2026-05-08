@@ -4,36 +4,50 @@ using System.Collections.Generic;
 
 /// <summary>
 /// Manages board state, tile occupancy, and item placement.
-/// Provides a single source of truth for all board interactions.
+/// Provides a single source of truth for all board interactions,
+/// including placement validation, occupancy tracking, and item retrieval.
 /// </summary>
 public class BoardManager : MonoBehaviour
 {
-    /// <summary>
-    /// The base tilemap that defines the playable board area.
-    /// Used to validate cell positions and convert between world and grid coordinates.
-    /// </summary>
-    [Header("References")] public Tilemap boardTilemap;
+    #region Serialized Fields
 
-    /// <summary>
-    /// The overlay tilemap used for locked or highlighted cells.
-    /// A cell is considered locked if this tilemap contains a tile at that position.
-    /// </summary>
+    [Header("Tilemap References")]
+    [Tooltip("The base tilemap that defines the playable board area.")]
+    [SerializeField] 
+    public Tilemap boardTilemap;
+
+    [Tooltip("The overlay tilemap used for locked or highlighted cells.")]
+    [SerializeField] 
     public Tilemap overlayTilemap;
+
+    #endregion
+
+
+    #region Private Fields
 
     /// <summary>
     /// Tracks all active items placed on the board, keyed by their tile cell position.
     /// Provides fast lookups for occupancy, merging, and movement.
     /// </summary>
-    private Dictionary<Vector3Int, BoardItem> items;
+    private Dictionary<Vector3Int, BoardItem> _items;
+
+    #endregion
+
+
+    #region Unity Lifecycle
 
     /// <summary>
-    /// Initialize the internal item dictionary used to track board occupancy.
-    /// Called automatically when the object is created.
+    /// Initializes the internal item dictionary used to track board occupancy.
     /// </summary>
     private void Awake()
     {
-        items = new Dictionary<Vector3Int, BoardItem>();
+        _items = new Dictionary<Vector3Int, BoardItem>();
     }
+
+    #endregion
+
+
+    #region Board Validation
 
     /// <summary>
     /// Determines whether the given cell is part of the playable board.
@@ -43,7 +57,7 @@ public class BoardManager : MonoBehaviour
     /// <returns>True if the cell is inside the board; otherwise false.</returns>
     public bool IsInsideBoard(Vector3Int cell)
     {
-        return boardTilemap.HasTile(cell);
+        return boardTilemap != null && boardTilemap.HasTile(cell);
     }
 
     /// <summary>
@@ -54,7 +68,7 @@ public class BoardManager : MonoBehaviour
     /// <returns>True if the cell is locked; otherwise false.</returns>
     public bool IsLocked(Vector3Int cell)
     {
-        return overlayTilemap.HasTile(cell);
+        return overlayTilemap != null && overlayTilemap.HasTile(cell);
     }
 
     /// <summary>
@@ -65,7 +79,7 @@ public class BoardManager : MonoBehaviour
     /// <returns>True if the cell contains an item; otherwise false.</returns>
     public bool IsOccupied(Vector3Int cell)
     {
-        return items.ContainsKey(cell);
+        return _items.ContainsKey(cell);
     }
 
     /// <summary>
@@ -79,6 +93,11 @@ public class BoardManager : MonoBehaviour
         return IsInsideBoard(cell) && !IsLocked(cell) && !IsOccupied(cell);
     }
 
+    #endregion
+
+
+    #region Placement Logic
+
     /// <summary>
     /// Attempts to place an item prefab at the specified cell.
     /// Retrieves an instance from the object pool, positions it at the cell center,
@@ -89,20 +108,23 @@ public class BoardManager : MonoBehaviour
     /// <returns>True if placement succeeded; otherwise false.</returns>
     public bool TryPlaceItem(GameObject prefab, Vector3Int cell)
     {
-        if (!CanPlace(cell)) 
+        if (!CanPlace(cell))
             return false;
 
-        Vector3 worldPos = boardTilemap.GetCellCenterWorld(cell);
-        // Refactored for mobile first design
-        // GameObject obj = Instantiate(prefab, worldPos, Quaternion.identity);
-        GameObject obj = ObjectPoolManager.Instance.GetPrefab(prefab);
-        obj.transform.position = worldPos;
+        if (prefab == null)
+            return false;
 
-        BoardItem item = obj.GetComponent<BoardItem>();
-        item.ResetItem();
-        item.CellPosition = cell;
+        Vector3 worldPosition = boardTilemap.GetCellCenterWorld(cell);
 
-        items[cell] = item;
+        // Retrieve pooled instance
+        GameObject instance = ObjectPoolManager.Instance.GetPrefab(prefab);
+        instance.transform.position = worldPosition;
+
+        BoardItem boardItem = instance.GetComponent<BoardItem>();
+        boardItem.ResetItem();
+        boardItem.CellPosition = cell;
+
+        _items[cell] = boardItem;
 
         return true;
     }
@@ -114,24 +136,29 @@ public class BoardManager : MonoBehaviour
     /// <param name="cell">The tile cell position to clear.</param>
     public void RemoveItem(Vector3Int cell)
     {
-        if (!items.ContainsKey(cell)) return;
-        
-        // Refactored for mobile first design
-        // Destroy(items[cell].gameObject);
-        BoardItem item = items[cell];
+        if (!_items.TryGetValue(cell, out BoardItem item))
+            return;
+
         ObjectPoolManager.Instance.ReturnPrefab(item.PrefabReference, item.gameObject);
-        items.Remove(cell);
+        _items.Remove(cell);
     }
+
+    #endregion
+
+
+    #region Item Retrieval
 
     /// <summary>
     /// Retrieves the item occupying the specified cell.
     /// Returns null if the cell is empty or outside the board.
     /// </summary>
     /// <param name="cell">The tile cell position to query.</param>
-    /// <returns>The BoardItem at the cell, or null if none exists.</returns>
+    /// <returns>The <see cref="BoardItem"/> at the cell, or null if none exists.</returns>
     public BoardItem GetItem(Vector3Int cell)
     {
-        items.TryGetValue(cell, out BoardItem item);
+        _items.TryGetValue(cell, out BoardItem item);
         return item;
     }
+
+    #endregion
 }

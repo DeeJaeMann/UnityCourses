@@ -12,8 +12,10 @@ public class GeneratorManager_PlayModeTests
     private GameObject _root;
     private GeneratorManager _manager;
 
+    #region Setup / Teardown
+
     /// <summary>
-    /// Creates a real GeneratorManager instance in a PlayMode scene.
+    /// Creates a real <see cref="GeneratorManager"/> instance in a PlayMode scene.
     /// </summary>
     [SetUp]
     public void Setup()
@@ -31,11 +33,14 @@ public class GeneratorManager_PlayModeTests
         Object.DestroyImmediate(_root);
     }
 
+    #endregion
+
+
     #region Event Behavior Tests
 
     /// <summary>
-    /// Ensures OnGeneratorChanged fires correctly when the first generator is added,
-    /// using real PlayMode event invocation.
+    /// Ensures <see cref="GeneratorManager.OnGeneratorChanged"/> fires correctly
+    /// when the first generator is added, using real PlayMode event invocation.
     /// </summary>
     [UnityTest]
     public System.Collections.IEnumerator OnGeneratorChanged_Fires_WhenFirstGeneratorAdded()
@@ -58,8 +63,8 @@ public class GeneratorManager_PlayModeTests
     }
 
     /// <summary>
-    /// Ensures OnGeneratorChanged fires when advancing to the next generator
-    /// inside a real PlayMode scene.
+    /// Ensures <see cref="GeneratorManager.OnGeneratorChanged"/> fires when advancing
+    /// to the next generator inside a real PlayMode scene.
     /// </summary>
     [UnityTest]
     public System.Collections.IEnumerator OnGeneratorChanged_Fires_WhenAdvancing()
@@ -86,22 +91,26 @@ public class GeneratorManager_PlayModeTests
     }
 
     #endregion
+
+
     #region Lifecycle Behavior Tests
 
     /// <summary>
     /// Ensures the component initializes correctly in a PlayMode scene
-    /// and Current returns null before any generators are added.
+    /// and <see cref="GeneratorManager.CurrentGenerator"/> returns null
+    /// before any generators are added.
     /// </summary>
     [UnityTest]
-    public System.Collections.IEnumerator Current_IsNull_OnStart()
+    public System.Collections.IEnumerator CurrentGenerator_IsNull_OnStart()
     {
         // Wait one frame to simulate scene start
         yield return null;
 
         Assert.IsNull(
-            _manager.Current,
-            "Current should be null at scene start before any generators are added."
+            _manager.CurrentGenerator,
+            "CurrentGenerator should be null at scene start before any generators are added."
         );
     }
+
     #endregion
 }
