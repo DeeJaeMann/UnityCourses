@@ -96,15 +96,22 @@ public class GeneratorManager : MonoBehaviour
     {
         if (_generatorSequence.Count == 0)
             return;
-
-        // Clamp to last generator
+        
         int nextIndex = Mathf.Min(_currentGeneratorIndex + 1, _generatorSequence.Count - 1);
 
-        // Only fire event if the generator actually changed
+        // Advance to new generator
         if (nextIndex != _currentGeneratorIndex)
         {
             _currentGeneratorIndex = nextIndex;
             OnGeneratorChanged?.Invoke(CurrentGenerator);
+            return;
+        }
+        
+        // Last generator -> clear UI
+        if (nextIndex == _currentGeneratorIndex && nextIndex == _generatorSequence.Count - 1)
+        {
+            Debug.Log("GeneratorManager.Advance: No more generators, clearing UI");
+            OnGeneratorChanged?.Invoke(null);
         }
     }
 

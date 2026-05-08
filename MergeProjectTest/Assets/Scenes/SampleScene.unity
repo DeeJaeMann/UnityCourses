@@ -1762,8 +1762,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fa3c228816fac77e0b257f4bd0dbffd8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BoardManager
-  boardTilemap: {fileID: 0}
-  overlayTilemap: {fileID: 0}
+  boardTilemap: {fileID: 1072670680}
+  overlayTilemap: {fileID: 1097895418}
 --- !u!1 &2099214591
 GameObject:
   m_ObjectHideFlags: 0

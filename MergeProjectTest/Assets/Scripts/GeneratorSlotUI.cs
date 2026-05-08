@@ -33,6 +33,8 @@ public class GeneratorSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     /// </summary>
     private GameObject _currentPrefab;
 
+    private Color _originalIconColor;
+
     /// <summary>
     /// Cached reference to the <see cref="GeneratorManager"/> that provides
     /// the currently active generator prefab. This reference is used to
@@ -52,6 +54,7 @@ public class GeneratorSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     {
         if (iconImage is not null)
         {
+            _originalIconColor = iconImage.color;
             iconImage.sprite = null;
         }
         // generatorManager = FindAnyObjectByType<GeneratorManager>();
@@ -88,12 +91,13 @@ public class GeneratorSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         if (iconImage is null)
             return;
 
-        // TODO: Verify why changed
-        // if (sprite is null)
-        // {
-        //     iconImage.sprite = null;
-        //     return;
-        // }
+
+        if (sprite is null)
+        {
+            iconImage.sprite = null;
+            iconImage.color = _originalIconColor;
+            return;
+        }
         
         // Assign and show the icon
         iconImage.sprite = sprite;

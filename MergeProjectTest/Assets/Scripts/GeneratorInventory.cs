@@ -31,7 +31,6 @@ public class GeneratorInventory : MonoBehaviour
     /// </summary>
     private void Start()
     {
-        Debug.Log("GeneratorInventory.Start() running");
         if (availableGenerators.Count == 0)
         {
             Debug.LogWarning($"{nameof(GeneratorInventory)}: No generator prefabs assigned.");

@@ -84,6 +84,7 @@ public class InputManager : MonoBehaviour
     {
         _activePrefab = prefab;
         _state = InputState.ClickPlacement;
+        Debug.Log($"InputManager.BeginClickPlacement: {_activePrefab.name}, state: {_state}");
     }
 
     /// <summary>
@@ -138,6 +139,7 @@ public class InputManager : MonoBehaviour
         if (Mouse.current?.leftButton.wasPressedThisFrame == true)
         {
             Vector2 mousePosition = Mouse.current.position.ReadValue();
+            Debug.Log($"InputManager.Update - ClickPlacement: mouse at {mousePosition}");
             TryPlaceAtScreenPosition(mousePosition);
             _state = InputState.Idle;
         }
@@ -156,16 +158,17 @@ public class InputManager : MonoBehaviour
     /// <param name="screenPosition">The mouse position in screen coordinates.</param>
     private void TryPlaceAtScreenPosition(Vector3 screenPosition)
     {
-        if (_activePrefab == null)
+        Debug.Log($"TryPlaceAtScreenPosition called with screenPosition {screenPosition}");
+        if (_activePrefab is null)
             return;
 
-        if (_mainCamera == null)
+        if (_mainCamera is null)
             return;
 
         Vector3 worldPosition = _mainCamera.ScreenToWorldPoint(screenPosition);
 
         var boardManager = FindAnyObjectByType<BoardManager>();
-        if (boardManager == null || boardManager.boardTilemap == null)
+        if (boardManager is null || boardManager.boardTilemap is null)
             return;
 
         Vector3Int cellPosition = boardManager.boardTilemap.WorldToCell(worldPosition);
@@ -177,6 +180,9 @@ public class InputManager : MonoBehaviour
             var generatorManager = FindAnyObjectByType<GeneratorManager>();
             generatorManager?.Advance();
         }
+        
+
+
     }
 
     #endregion
