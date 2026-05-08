@@ -13,8 +13,7 @@ using UnityEngine.Serialization;
 public class GeneratorInventory : MonoBehaviour
 {
     #region Serialized Fields
-
-    [FormerlySerializedAs("_availableGenerators")]
+    
     [Header("Generator Prefabs")]
     [Tooltip("List of generator prefabs available to the player. The first entry will be used at game start.")]
     [SerializeField] 
@@ -32,6 +31,7 @@ public class GeneratorInventory : MonoBehaviour
     /// </summary>
     private void Start()
     {
+        Debug.Log("GeneratorInventory.Start() running");
         if (availableGenerators.Count == 0)
         {
             Debug.LogWarning($"{nameof(GeneratorInventory)}: No generator prefabs assigned.");

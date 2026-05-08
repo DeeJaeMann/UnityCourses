@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 /// <summary>
@@ -39,7 +40,8 @@ public class GeneratorSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     /// active generator is modified. Assigned automatically at runtime using
     /// <c>FindAnyObjectByType</c>.
     /// </summary>
-    private GeneratorManager _generatorManager;
+    [Header("Managers")] [SerializeField]
+    private GeneratorManager generatorManager;
     
     /// <summary>
     /// Unity lifecycle method.
@@ -52,6 +54,8 @@ public class GeneratorSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         {
             iconImage.sprite = null;
         }
+        // generatorManager = FindAnyObjectByType<GeneratorManager>();
+        if (generatorManager is not null) generatorManager.OnGeneratorChanged += HandleGeneratorChanged;
     }
 
     /// <summary>
@@ -60,8 +64,7 @@ public class GeneratorSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     /// </summary>
     public void Start()
     {
-        _generatorManager = FindAnyObjectByType<GeneratorManager>();
-        if (_generatorManager is not null) _generatorManager.OnGeneratorChanged += HandleGeneratorChanged;
+
     }
 
     /// <summary>
@@ -72,7 +75,7 @@ public class GeneratorSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     /// </summary>
     public void OnDestroy()
     {
-        if (_generatorManager is not null) _generatorManager.OnGeneratorChanged -= HandleGeneratorChanged;
+        if (generatorManager is not null) generatorManager.OnGeneratorChanged -= HandleGeneratorChanged;
     }
 
     /// <summary>
@@ -167,7 +170,6 @@ public class GeneratorSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     private void HandleGeneratorChanged(GameObject prefab)
     {
         _currentPrefab = prefab;
-
         if (prefab is null)
         {
             SetGeneratorSprite(null);
@@ -175,8 +177,12 @@ public class GeneratorSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         }
         
         // Extract sprite from prefab
-        SpriteRenderer spriteRenderer = prefab.GetComponentInChildren<SpriteRenderer>();
-        SetGeneratorSprite(spriteRenderer is not null ? spriteRenderer.sprite : null);
+        // SpriteRenderer spriteRenderer = prefab.GetComponentInChildren<SpriteRenderer>();
+        // SetGeneratorSprite(spriteRenderer is not null ? spriteRenderer.sprite : null);
+        SpriteRenderer spriteRenderer = prefab.GetComponent<SpriteRenderer>();
+        iconImage.sprite = spriteRenderer is not null ? spriteRenderer.sprite : null;
+        iconImage.color = Color.white;
+
     }
     
     /// <summary>

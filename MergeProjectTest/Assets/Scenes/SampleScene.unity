@@ -479,7 +479,7 @@ MonoBehaviour:
   m_Intensity: 1
   m_LightVolumeIntensity: 1
   m_LightVolumeEnabled: 0
-  m_ApplyToSortingLayers: 00000000
+  m_ApplyToSortingLayers: 00000000f5b0ce74
   m_LightCookieSprite: {fileID: 0}
   m_DeprecatedPointLightCookieSprite: {fileID: 0}
   m_LightOrder: 0
@@ -1392,7 +1392,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 610daff4b786b223fb7b791a9bec7099, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Scripts::GeneratorInventory
-  availableGenerators: []
+  availableGenerators:
+  - {fileID: 8616480994881108538, guid: b81179306ea9ed261904dab1021cb2cc, type: 3}
 --- !u!4 &1271834594
 Transform:
   m_ObjectHideFlags: 0
@@ -1418,9 +1419,9 @@ GameObject:
   m_Component:
   - component: {fileID: 1489775698}
   - component: {fileID: 1489775703}
+  - component: {fileID: 1489775700}
   - component: {fileID: 1489775702}
   - component: {fileID: 1489775701}
-  - component: {fileID: 1489775700}
   m_Layer: 5
   m_Name: GeneratorSlot
   m_TagString: Untagged
@@ -1461,7 +1462,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GeneratorSlotUI
   iconImage: {fileID: 204959621}
-  inputManager: {fileID: 0}
+  inputManager: {fileID: 685407050}
+  generatorManager: {fileID: 134844272}
 --- !u!114 &1489775701
 MonoBehaviour:
   m_ObjectHideFlags: 0

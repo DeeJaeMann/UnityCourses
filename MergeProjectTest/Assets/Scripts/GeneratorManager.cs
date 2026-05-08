@@ -71,9 +71,8 @@ public class GeneratorManager : MonoBehaviour
     /// <param name="generatorPrefab">The generator prefab to add.</param>
     public void AddGenerator(GameObject generatorPrefab)
     {
-        if (generatorPrefab == null)
+        if (generatorPrefab is null)
         {
-            Debug.LogWarning($"{nameof(GeneratorManager)}: Attempted to add a null generator prefab.");
             return;
         }
 
@@ -81,7 +80,10 @@ public class GeneratorManager : MonoBehaviour
 
         // If this is the first generator, notify listeners immediately
         if (_generatorSequence.Count == 1)
-            OnGeneratorChanged?.Invoke(CurrentGenerator);
+        {
+            OnGeneratorChanged?.Invoke(CurrentGenerator);           
+        }
+
     }
 
     /// <summary>
